@@ -1,0 +1,87 @@
+version: '3.9'
+
+services:
+  api:
+    build: ./backend
+    container_name: fin_api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - uploads:/app/uploads
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  worker:
+    build: ./backend
+    container_name: fin_worker
+    volumes:
+      - ./backend:/app
+      - uploads:/app/uploads
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A app.workers.celery_app worker --loglevel=info --concurrency=4
+
+  beat:
+    build: ./backend
+    container_name: fin_beat
+    volumes:
+      - ./backend:/app
+    env_file: .env
+    depends_on:
+      - redis
+    command: celery -A app.workers.celery_app beat --loglevel=info
+
+  flower:
+    build: ./backend
+    container_name: fin_flower
+    ports:
+      - "5555:5555"
+    env_file: .env
+    depends_on:
+      - redis
+    command: celery -A app.workers.celery_app flower --port=5555
+
+  db:
+    image: postgres:16-alpine
+    container_name: fin_db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-finuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finpass}
+      POSTGRES_DB: ${POSTGRES_DB:-finanaliza}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-finuser}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: fin_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+  uploads:
