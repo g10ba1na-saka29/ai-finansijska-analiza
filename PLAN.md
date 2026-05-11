@@ -517,8 +517,8 @@ class LLMClient:
 ### Faza 3 — ML & Forecasting ✅ ZAVRŠENA
 - [x] OLS linearni forecasting (revenue, EBITDA, neto dobit — 1–3 god.) + 95% CI
 - [x] Industry benchmarking (10 industrija × 14 metrika, percentilna poređenja)
-- [ ] Anomaly detection (Isolation Forest) — nije implementirano
-- [ ] Bankruptcy prediction model (ML) — nije implementirano
+- [x] Anomaly detection (Isolation Forest + rule-based + IQR) — implementirano
+- [x] Bankruptcy prediction model (Piotroski F-Score + Altman Z + distress probability) — implementirano
 
 ### Faza 4 — LLM Izvještaji ✅ ZAVRŠENA
 - [x] OpenAI integracija + prompt engineering
@@ -543,6 +543,7 @@ class LLMClient:
 - [ ] Org management — invite korisnika, upravljanje rolama          ← NEDOSTAJE
 - [x] Benchmarks stranica — poređenje sa industrijskim prosjekom
 - [x] Forecasting stranica — ML prognoza 1–3 godine (backend + frontend)
+- [x] Risk assessment stranica — anomaly detection, Piotroski F-Score, distress gauge
 
 ### Faza 6 — Polish & Production ✅ UGLAVNOM ZAVRŠENA
 - [x] Redis caching (cache-aside na KPI/score endpointima, TTL 1h, sync invalidacija iz Celery)
