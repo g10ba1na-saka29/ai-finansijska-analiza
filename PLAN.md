@@ -180,7 +180,9 @@ CREATE TABLE users (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id          UUID REFERENCES organizations(id),
     email           VARCHAR(255) UNIQUE NOT NULL,
+    hashed_password VARCHAR(255) NOT NULL,
     role            VARCHAR(50) NOT NULL DEFAULT 'analyst', -- admin, analyst, viewer
+    is_active       BOOLEAN DEFAULT TRUE,
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -497,48 +499,57 @@ class LLMClient:
 
 ## 8. Faze razvoja
 
-### Faza 1 — Foundation (2–3 sedmice)
-- [ ] Projekt setup: FastAPI, PostgreSQL, Docker Compose
-- [ ] Auth sistem (JWT + refresh tokeni)
-- [ ] Company & Organization CRUD
-- [ ] PDF upload + Celery job queue
-- [ ] camelot + pdfplumber integracija
-- [ ] Osnovna normalizacija podataka
+### Faza 1 — Foundation ✅ ZAVRŠENA
+- [x] Projekt setup: FastAPI, PostgreSQL, Docker Compose
+- [x] Auth sistem (JWT + refresh tokeni, PATCH /me/password)
+- [x] Company & Organization CRUD
+- [x] PDF upload + Celery job queue
+- [x] camelot + pdfplumber integracija
+- [x] Osnovna normalizacija podataka
 
-### Faza 2 — KPI & Score Engine (2–3 sedmice)
-- [ ] Implementacija svih KPI metrika
-- [ ] Kompozitni score model
-- [ ] Altman Z-Score
-- [ ] KPI trend analiza
-- [ ] PostgreSQL snimci + historija
+### Faza 2 — KPI & Score Engine ✅ ZAVRŠENA
+- [x] Implementacija svih KPI metrika (likvidnost, profitabilnost, zaduženost, rast, CF, efikasnost)
+- [x] Kompozitni score model (0–100, 5 kategorija)
+- [x] Altman Z-Score (z'' model za privatne kompanije)
+- [x] KPI trend analiza (multi-godišnji trend)
+- [x] PostgreSQL snimci + historija
 
-### Faza 3 — ML & Forecasting (2 sedmice)
-- [ ] XGBoost forecasting (revenue, EBITDA)
-- [ ] Anomaly detection (Isolation Forest)
-- [ ] Bankruptcy risk model
-- [ ] Industry benchmarking dataset
+### Faza 3 — ML & Forecasting ✅ ZAVRŠENA
+- [x] OLS linearni forecasting (revenue, EBITDA, neto dobit — 1–3 god.) + 95% CI
+- [x] Industry benchmarking (10 industrija × 14 metrika, percentilna poređenja)
+- [ ] Anomaly detection (Isolation Forest) — nije implementirano
+- [ ] Bankruptcy prediction model (ML) — nije implementirano
 
-### Faza 4 — LLM Izvještaji (1–2 sedmice)
-- [ ] OpenAI integracija + prompt engineering
-- [ ] Strukturirani izvještaj generator
-- [ ] PDF export izvještaja (WeasyPrint / reportlab)
-- [ ] Q&A endpoint
+### Faza 4 — LLM Izvještaji ✅ ZAVRŠENA
+- [x] OpenAI integracija + prompt engineering
+- [x] Strukturirani izvještaj generator (summary, strengths, weaknesses, preporuke, outlook, red flags)
+- [x] PDF export izvještaja (WeasyPrint)
+- [x] Q&A endpoint (chat o kompaniji)
 
-### Faza 5 — Frontend (3–4 sedmice)
-- [ ] Next.js projekt setup + Tailwind
-- [ ] Auth flow (login, register, org management)
-- [ ] Company dashboard + KPI kartice
-- [ ] Score visualization (gauge chart, breakdown)
-- [ ] Recharts: trend grafikoni, radar chart, bar charts
-- [ ] AI izvještaj viewer
-- [ ] PDF download
+### Faza 5 — Frontend ✅ UGLAVNOM ZAVRŠENA
+- [x] Next.js projekt setup + Tailwind
+- [x] Auth flow — login (canvas animacija), register
+- [x] Company dashboard (score ring, stat kartice, company grid)
+- [x] Companies lista (tabela, search, risk badge, edit/detalji)
+- [x] Company detalj (gauge, category bars, radar, KPI summary, trend)
+- [x] Company novo (color picker, live preview)
+- [x] Company uredi (forma, color picker, danger zone/brisanje)
+- [x] Izvještaji — redesign (drag-drop upload, status pills, KPI trigger)
+- [x] KPI detalji (6 sekcija, year selector, trend grafikoni)
+- [x] AI izvještaj + Q&A (year selector, PDF download, chat)
+- [x] Postavke profila (ime, šifra, avatar, photo upload)
+- [x] Toast notifikacijski sistem (zamijenio sve alert() pozive)
+- [x] Sidebar live sync (promjene u postavkama odmah vidljive)
+- [ ] Org management — invite korisnika, upravljanje rolama          ← NEDOSTAJE
+- [x] Benchmarks stranica — poređenje sa industrijskim prosjekom
+- [x] Forecasting stranica — ML prognoza 1–3 godine (backend + frontend)
 
-### Faza 6 — Polish & Production (2 sedmice)
-- [ ] Redis caching strategija
-- [ ] Rate limiting + quota management
-- [ ] Audit log
-- [ ] Webhook system
-- [ ] Monitoring (Sentry, logging)
+### Faza 6 — Polish & Production ✅ UGLAVNOM ZAVRŠENA
+- [x] Redis caching (cache-aside na KPI/score endpointima, TTL 1h, sync invalidacija iz Celery)
+- [x] Rate limiting (slowapi, 120/min globalno, 20/min za upload)
+- [ ] Audit log endpoint (tabela postoji, API endpoint nije implementiran)
+- [x] Webhook system (CRUD, HMAC-SHA256 potpisivanje, Celery isporuka, test endpoint)
+- [x] Monitoring (Sentry SDK, strukturirani JSON logging, RequestLoggingMiddleware, global error handler)
 - [ ] Dokumentacija za korisnike
 
 ---
@@ -638,4 +649,4 @@ docs/
 
 ---
 
-*Dokument se ažurira uz svaki sprint. Zadnja izmjena: 2026-05-08*
+*Dokument se ažurira uz svaki sprint. Zadnja izmjena: 2026-05-11*

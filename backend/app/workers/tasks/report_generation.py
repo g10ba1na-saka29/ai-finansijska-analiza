@@ -107,6 +107,23 @@ def generate_ai_report_task(self, company_id: str, fiscal_year: int, report_id: 
         db.commit()
 
         logger.info(f"AI izvještaj generisan: company={company_id}, year={fiscal_year}")
+
+        # Dispatch webhook event
+        try:
+            from app.workers.tasks.webhook_delivery import dispatch_webhook_event
+            dispatch_webhook_event.delay(
+                "ai_report.generated",
+                str(company.org_id),
+                {
+                    "company_id": company_id,
+                    "company_name": company.name,
+                    "fiscal_year": fiscal_year,
+                    "report_id": report_id,
+                },
+            )
+        except Exception as we:
+            logger.warning(f"Webhook dispatch neuspješan (nefatalno): {we}")
+
         return {"status": "done", "report_id": report_id}
 
     except Exception as exc:

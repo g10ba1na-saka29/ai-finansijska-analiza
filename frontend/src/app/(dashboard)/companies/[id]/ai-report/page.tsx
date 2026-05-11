@@ -2,15 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { aiReports, companies } from '@/lib/api'
+import { aiReports, companies, reports as reportsApi } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { StatusBadge } from '@/components/ui/Badge'
 import { PageSpinner } from '@/components/ui/Spinner'
-import { token } from '@/lib/api'
+import { toast } from '@/components/ui/Toast'
 import type { AIReport, Company } from '@/types'
 
-const YEAR = new Date().getFullYear() - 1
+const CUR_YEAR = new Date().getFullYear() - 1
 
 export default function AIReportPage() {
   const { id } = useParams<{ id: string }>()
@@ -18,6 +18,8 @@ export default function AIReportPage() {
   const [report, setReport]       = useState<AIReport | null>(null)
   const [loading, setLoading]     = useState(true)
   const [generating, setGenerating] = useState(false)
+  const [year, setYear]           = useState(CUR_YEAR)
+  const [availableYears, setAvailableYears] = useState<number[]>([CUR_YEAR])
 
   // Q&A state
   const [question, setQuestion]   = useState('')
@@ -25,35 +27,60 @@ export default function AIReportPage() {
   const [messages, setMessages]   = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([])
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  const load = async () => {
-    const [co, rep] = await Promise.allSettled([
+  const load = async (y: number) => {
+    const [co, rep, reps] = await Promise.allSettled([
       companies.get(id),
-      aiReports.get(id, YEAR),
+      aiReports.get(id, y),
+      reportsApi.list(id),
     ])
     if (co.status === 'fulfilled') setCompany(co.value)
     if (rep.status === 'fulfilled') setReport(rep.value)
+    else setReport(null)
+    if (reps.status === 'fulfilled') {
+      const doneYears = [...new Set(
+        reps.value.items.filter(r => r.status === 'done').map(r => r.fiscal_year)
+      )].sort((a, b) => b - a)
+      if (doneYears.length > 0) {
+        setAvailableYears(doneYears)
+        setYear(prev => doneYears.includes(prev) ? prev : doneYears[0])
+      }
+    }
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [id])
+  useEffect(() => { load(year) }, [id])
+
+  // Reload report when year changes (after initial load)
+  useEffect(() => {
+    if (loading) return
+    setReport(null)
+    aiReports.get(id, year).then(setReport).catch(() => setReport(null))
+  }, [year])
 
   // Poll while generating
   useEffect(() => {
     if (report?.status !== 'generating' && report?.status !== 'pending') return
     const t = setInterval(async () => {
-      const r = await aiReports.get(id, YEAR).catch(() => null)
-      if (r) { setReport(r); if (r.status === 'done' || r.status === 'error') clearInterval(t) }
+      const r = await aiReports.get(id, year).catch(() => null)
+      if (r) {
+        setReport(r)
+        if (r.status === 'done') { clearInterval(t); toast.success('AI izvještaj generisan!') }
+        if (r.status === 'error') { clearInterval(t); toast.error('Greška pri generisanju izvještaja') }
+      }
     }, 4000)
     return () => clearInterval(t)
-  }, [report?.status, id])
+  }, [report?.status, id, year])
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
   async function handleGenerate() {
     setGenerating(true)
     try {
-      const r = await aiReports.generate(id, YEAR)
+      const r = await aiReports.generate(id, year)
       setReport(r)
+      toast.info('Generisanje pokrenuto', 'AI analizira podatke, pričekajte 30–60 sekundi')
+    } catch (e) {
+      toast.error('Greška pri generisanju', e instanceof Error ? e.message : 'Pokušajte ponovo')
     } finally {
       setGenerating(false)
     }
@@ -66,7 +93,7 @@ export default function AIReportPage() {
     setMessages(m => [...m, { role: 'user', content: q }])
     setQaLoading(true)
     try {
-      const res = await aiReports.qa(id, YEAR, q, messages)
+      const res = await aiReports.qa(id, year, q, messages)
       setMessages(m => [...m, { role: 'assistant', content: res.answer }])
     } catch (e) {
       setMessages(m => [...m, { role: 'assistant', content: 'Greška pri dohvatanju odgovora.' }])
@@ -79,22 +106,30 @@ export default function AIReportPage() {
 
   return (
     <div className="p-8 space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">AI Finansijski Izvještaj</h1>
-          <p className="mt-1 text-sm text-gray-500">{company?.name} · {YEAR}</p>
+          <p className="mt-1 text-sm text-gray-500">{company?.name}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Year selector */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-500">Godina:</label>
+            <select
+              value={year}
+              onChange={e => setYear(Number(e.target.value))}
+              className="rounded-lg border-0 py-1.5 px-3 text-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600"
+            >
+              {availableYears.map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+
           {report && <StatusBadge status={report.status} />}
           {report?.status === 'done' && (
-            <a
-              href={aiReports.pdfUrl(id, YEAR)}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button variant="secondary" size="sm">
-                ↓ Preuzmi PDF
-              </Button>
+            <a href={aiReports.pdfUrl(id, year)} target="_blank" rel="noopener noreferrer">
+              <Button variant="secondary" size="sm">↓ Preuzmi PDF</Button>
             </a>
           )}
           <Button
@@ -268,7 +303,7 @@ export default function AIReportPage() {
         <Card>
           <CardContent className="py-16 text-center">
             <p className="text-sm text-gray-400 mb-4">
-              AI izvještaj nije generisan za {YEAR}. Potrebni su KPI i score podaci.
+              AI izvještaj nije generisan za {year}. Potrebni su KPI i score podaci.
             </p>
             <Button onClick={handleGenerate} loading={generating}>Generiši AI izvještaj</Button>
           </CardContent>

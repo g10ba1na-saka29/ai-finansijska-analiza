@@ -39,6 +39,25 @@ def process_pdf_report(self, report_id: str, file_path: str) -> dict:
         from app.workers.tasks.kpi_calculation import calculate_kpis_and_score
         calculate_kpis_and_score.delay(str(report.company_id), report.fiscal_year)
 
+        # Dispatch webhook event
+        try:
+            from app.models.company import Company
+            company = db.query(Company).filter_by(id=report.company_id).first()
+            if company:
+                from app.workers.tasks.webhook_delivery import dispatch_webhook_event
+                dispatch_webhook_event.delay(
+                    "report.processed",
+                    str(company.org_id),
+                    {
+                        "report_id": report_id,
+                        "company_id": str(report.company_id),
+                        "company_name": company.name,
+                        "fiscal_year": report.fiscal_year,
+                    },
+                )
+        except Exception as we:
+            logger.warning(f"Webhook dispatch neuspješan (nefatalno): {we}")
+
         return {"status": "done", "report_id": report_id}
 
     except Exception as exc:

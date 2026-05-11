@@ -2,9 +2,13 @@ import os
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request, status
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+
+limiter = Limiter(key_func=get_remote_address)
 
 from app.database import get_db
 from app.models.user import User
@@ -28,7 +32,9 @@ async def _get_company_or_404(company_id: UUID, user: User, db: AsyncSession) ->
 
 
 @router.post("/companies/{company_id}/reports", response_model=ReportOut, status_code=status.HTTP_201_CREATED)
+@limiter.limit(f"20/minute")
 async def upload_report(
+    request: Request,
     company_id: UUID,
     fiscal_year: int = Form(...),
     report_type: str = Form(...),
@@ -115,6 +121,35 @@ async def get_report(
     report = q.scalar_one_or_none()
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
+    return report
+
+
+@router.post("/reports/{report_id}/reparse", response_model=ReportOut)
+async def reparse_report(
+    report_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Ponovo parsira PDF sa ažuriranim parserom (bez ponovnog uploada)."""
+    q = await db.execute(
+        select(FinancialReport)
+        .join(Company, FinancialReport.company_id == Company.id)
+        .where(FinancialReport.id == report_id, Company.org_id == current_user.org_id)
+    )
+    report = q.scalar_one_or_none()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    if not report.source_file or not os.path.exists(report.source_file):
+        raise HTTPException(status_code=400, detail="Source PDF file not found — please re-upload")
+
+    report.status = "pending"
+    report.raw_data = None
+
+    from app.workers.tasks.pdf_processing import process_pdf_report
+    process_pdf_report.delay(str(report.id), report.source_file)
+
+    await db.refresh(report)
     return report
 
 

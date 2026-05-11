@@ -4,10 +4,15 @@ import type {
   KPIResponse, KPITrendResponse,
   ScoreResponse, ScoreHistoryPoint,
   AIReport,
+  BenchmarkResponse, IndustriesResponse,
+  ForecastResponse,
+  AnomalyResult, BankruptcyRisk,
 } from '@/types'
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
-const API = `${BASE}/api/v1`
+const API =
+  typeof window === 'undefined'
+    ? `${process.env.NEXT_PUBLIC_API_URL ?? 'http://api:8000'}/api/v1`
+    : 'http://localhost:8000/api/v1'
 
 // ── Token storage (localStorage, client-only) ─────────────────────────────────
 export const token = {
@@ -76,6 +81,12 @@ export const auth = {
 
   me: () => req<User>('/auth/me'),
 
+  changePassword: (current_password: string, new_password: string) =>
+    req<void>('/auth/me/password', {
+      method: 'PATCH',
+      body: JSON.stringify({ current_password, new_password }),
+    }),
+
   refresh: (refresh_token: string) =>
     req<{ access_token: string; token_type: string }>('/auth/refresh', {
       method: 'POST',
@@ -115,6 +126,9 @@ export const reports = {
   },
 
   delete: (reportId: string) => req<void>(`/reports/${reportId}`, { method: 'DELETE' }),
+
+  reparse: (reportId: string) =>
+    req<FinancialReport>(`/reports/${reportId}/reparse`, { method: 'POST' }),
 }
 
 // ── KPI ───────────────────────────────────────────────────────────────────────
@@ -138,6 +152,35 @@ export const score = {
     req<{ task_id: string; status: string }>(`/companies/${companyId}/calculate/${year}`, { method: 'POST' }),
 }
 
+// ── Benchmarks ────────────────────────────────────────────────────────────────
+export const benchmarks = {
+  get: (companyId: string, year: number) =>
+    req<BenchmarkResponse>(`/companies/${companyId}/benchmarks/${year}`),
+
+  industries: () => req<IndustriesResponse>('/industries'),
+}
+
+// ── Forecast ──────────────────────────────────────────────────────────────────
+export const forecast = {
+  get: (companyId: string) =>
+    req<ForecastResponse>(`/companies/${companyId}/forecast`),
+
+  generate: (companyId: string, horizon = 3) =>
+    req<{ task_id: string; status: string; horizon: number }>(
+      `/companies/${companyId}/forecast/generate`,
+      { method: 'POST', body: JSON.stringify({ horizon }) },
+    ),
+}
+
+// ── Risk Analysis ────────────────────────────────────────────────────────────
+export const riskAnalysis = {
+  anomalies: (companyId: string, year: number) =>
+    req<AnomalyResult>(`/companies/${companyId}/anomalies/${year}`),
+
+  bankruptcyRisk: (companyId: string, year: number) =>
+    req<BankruptcyRisk>(`/companies/${companyId}/bankruptcy-risk/${year}`),
+}
+
 // ── AI Reports ────────────────────────────────────────────────────────────────
 export const aiReports = {
   generate: (companyId: string, year: number) =>
@@ -147,7 +190,7 @@ export const aiReports = {
     req<AIReport>(`/companies/${companyId}/ai-report/${year}`),
 
   pdfUrl: (companyId: string, year: number) =>
-    `${API}/companies/${companyId}/ai-report/${year}/pdf`,
+    `/api/v1/companies/${companyId}/ai-report/${year}/pdf`,
 
   qa: (companyId: string, year: number, question: string, history?: Array<{ role: string; content: string }>) =>
     req<{ answer: string; company_id: string; fiscal_year: number }>(

@@ -5,5 +5,86 @@
 @layer base {
   html {
     font-family: Inter, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  * { box-sizing: border-box; }
+
+  ::-webkit-scrollbar        { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track  { background: transparent; }
+  ::-webkit-scrollbar-thumb  { background: #c7d2fe; border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: #818cf8; }
+}
+
+@layer utilities {
+  /* ── Animation delays ────────────────────────────────────── */
+  .delay-75  { animation-delay:  75ms; }
+  .delay-100 { animation-delay: 100ms; }
+  .delay-150 { animation-delay: 150ms; }
+  .delay-200 { animation-delay: 200ms; }
+  .delay-250 { animation-delay: 250ms; }
+  .delay-300 { animation-delay: 300ms; }
+  .delay-400 { animation-delay: 400ms; }
+  .delay-500 { animation-delay: 500ms; }
+
+  /* ── Text gradient ───────────────────────────────────────── */
+  .gradient-text {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 60%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Skeleton shimmer ────────────────────────────────────── */
+  .skeleton {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.8s linear infinite;
+  }
+
+  /* ── Glass card ──────────────────────────────────────────── */
+  .glass {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  /* ── Mesh gradient background ────────────────────────────── */
+  .mesh-bg {
+    background-color: #f8faff;
+    background-image:
+      radial-gradient(at 20% 20%, rgba(99, 102, 241, 0.07) 0px, transparent 50%),
+      radial-gradient(at 80% 10%, rgba(139, 92, 246, 0.05) 0px, transparent 50%),
+      radial-gradient(at 50% 80%, rgba(99, 102, 241, 0.04) 0px, transparent 50%);
+  }
+}
+
+@layer components {
+  /* ── Sidebar nav ─────────────────────────────────────────── */
+  .nav-link {
+    @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium
+           text-sidebar-text transition-all duration-200
+           hover:bg-sidebar-hover hover:text-sidebar-textActive;
+  }
+  .nav-link-active {
+    @apply bg-sidebar-active text-sidebar-textActive;
+  }
+
+  /* ── Page typography ─────────────────────────────────────── */
+  .page-title   { @apply text-2xl font-bold tracking-tight text-slate-900; }
+  .page-sub     { @apply mt-0.5 text-sm text-slate-400; }
+  .section-tag  { @apply text-[10px] font-bold uppercase tracking-widest text-slate-500 px-3 mb-1 mt-4 block; }
+
+  /* ── Stat card ───────────────────────────────────────────── */
+  .stat-card {
+    @apply relative overflow-hidden rounded-2xl bg-white shadow-card
+           ring-1 ring-gray-100/80 transition-all duration-300
+           hover:shadow-card-md hover:-translate-y-0.5;
+  }
+
+  /* ── Table row ───────────────────────────────────────────── */
+  .table-row-hover {
+    @apply cursor-pointer transition-colors duration-150 hover:bg-primary-50/40;
   }
 }

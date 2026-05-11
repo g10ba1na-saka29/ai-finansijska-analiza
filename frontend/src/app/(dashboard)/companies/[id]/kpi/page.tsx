@@ -14,7 +14,8 @@ import type {
   GrowthKPIs, CashFlowKPIs, EfficiencyKPIs,
 } from '@/types'
 
-const YEAR = new Date().getFullYear() - 1
+const CUR_YEAR = new Date().getFullYear()
+const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => CUR_YEAR - 1 - i)
 
 interface KPIRow {
   label: string
@@ -126,19 +127,34 @@ export default function KPIPage() {
   const [kpiData, setKpiData] = useState<KPIResponse | null>(null)
   const [trend, setTrend]     = useState<KPITrendPoint[]>([])
   const [loading, setLoading] = useState(true)
+  const [year, setYear]       = useState(CUR_YEAR - 1)
 
+  // Inicijalno učitavanje — otkrijemo dostupne godine iz trenda
   useEffect(() => {
     Promise.allSettled([
       companies.get(id),
-      kpiApi.get(id, YEAR),
       kpiApi.trend(id),
-    ]).then(([co, kp, tr]) => {
+    ]).then(([co, tr]) => {
       if (co.status === 'fulfilled') setCompany(co.value)
-      if (kp.status === 'fulfilled') setKpiData(kp.value)
-      if (tr.status === 'fulfilled') setTrend(tr.value.points)
+      if (tr.status === 'fulfilled') {
+        const points = tr.value.points
+        setTrend(points)
+        // Automatski odaberi najsvježiju godinu s podacima
+        if (points.length > 0) {
+          const latestYear = Math.max(...points.map((p: KPITrendPoint) => p.fiscal_year))
+          setYear(latestYear)
+        }
+      }
       setLoading(false)
     })
   }, [id])
+
+  // Učitaj KPI za odabranu godinu
+  useEffect(() => {
+    if (loading) return
+    setKpiData(null)
+    kpiApi.get(id, year).then(setKpiData).catch(() => setKpiData(null))
+  }, [id, year, loading])
 
   if (loading) return <PageSpinner />
 
@@ -149,18 +165,32 @@ export default function KPIPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">KPI Detalji</h1>
-          <p className="mt-1 text-sm text-gray-500">{company?.name} · {YEAR}</p>
+          <p className="mt-1 text-sm text-gray-500">{company?.name}</p>
         </div>
-        <Link href={`/companies/${id}`}>
-          <span className="text-sm text-primary-700 hover:underline cursor-pointer">← Nazad na pregled</span>
-        </Link>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-600">Godina:</label>
+            <select
+              value={year}
+              onChange={e => setYear(Number(e.target.value))}
+              className="rounded-lg border-0 py-1.5 px-3 text-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600"
+            >
+              {YEAR_OPTIONS.map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+          <Link href={`/companies/${id}`}>
+            <span className="text-sm text-primary-700 hover:underline cursor-pointer">← Nazad na pregled</span>
+          </Link>
+        </div>
       </div>
 
       {!kpiData ? (
         <Card>
           <CardContent className="py-16 text-center">
             <p className="text-sm text-gray-400">
-              KPI podaci nisu dostupni za {YEAR}. Uploadajte finansijski izvještaj.
+              KPI podaci nisu dostupni za {year}. Uploadajte finansijski izvještaj i pokrenite izračun KPI.
             </p>
           </CardContent>
         </Card>

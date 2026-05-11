@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     # App
-    APP_NAME: str = "AI Finansijska Analiza"
+    APP_NAME: str = "Bilansia"
     API_V1_PREFIX: str = "/api/v1"
     DEBUG: bool = False
 
@@ -33,7 +33,16 @@ class Settings(BaseSettings):
 
     # Feature flags
     ENABLE_FORECASTING: bool = True
-    ENABLE_BENCHMARKS: bool = False
+    ENABLE_BENCHMARKS: bool = True
+
+    # Monitoring
+    SENTRY_DSN: str = ""
+    LOG_LEVEL: str = "INFO"
+    LOG_JSON: bool = True          # False za development (human-readable)
+
+    # Rate limiting (requests per minute per IP)
+    RATE_LIMIT_PER_MINUTE: int = 120
+    RATE_LIMIT_UPLOAD_PER_MINUTE: int = 20   # Stricter limit za upload endpoint
 
     @property
     def SYNC_DATABASE_URL(self) -> str:

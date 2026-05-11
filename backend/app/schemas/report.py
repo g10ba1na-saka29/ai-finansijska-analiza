@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-VALID_REPORT_TYPES = {"balance_sheet", "income", "cash_flow", "tax", "audit"}
+VALID_REPORT_TYPES = {"annual_report", "balance_sheet", "income", "cash_flow", "tax", "audit"}
 
 
 class ReportCreate(BaseModel):

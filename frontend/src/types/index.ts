@@ -158,6 +158,126 @@ export interface ScoreHistoryPoint {
   cashflow_score: number | null
 }
 
+// ── Benchmark ─────────────────────────────────────────────────────────────────
+export type BenchmarkAssessment = 'strong' | 'above_avg' | 'avg' | 'below_avg' | 'weak' | 'neutral'
+
+export interface MetricBenchmark {
+  metric: string
+  label: string
+  company_value: number | null
+  industry_p25: number | null
+  industry_median: number | null
+  industry_p75: number | null
+  percentile: number | null
+  higher_is_better: boolean
+  assessment: BenchmarkAssessment
+  assessment_label: string
+}
+
+export interface BenchmarkResponse {
+  company_id: string
+  fiscal_year: number
+  industry: string
+  metrics: MetricBenchmark[]
+  overall_percentile: number | null
+  strengths: string[]
+  weaknesses: string[]
+}
+
+export interface IndustriesResponse {
+  industries: string[]
+}
+
+// ── Forecast ──────────────────────────────────────────────────────────────────
+export interface ForecastPoint {
+  year: number
+  revenue: number | null
+  revenue_low: number | null
+  revenue_high: number | null
+  ebitda: number | null
+  ebitda_low: number | null
+  ebitda_high: number | null
+  net_income: number | null
+  net_income_low: number | null
+  net_income_high: number | null
+  ebitda_margin: number | null
+  net_margin: number | null
+}
+
+export interface HistoricalPoint {
+  year: number
+  revenue: number | null
+  ebitda: number | null
+  net_income: number | null
+  total_assets: number | null
+}
+
+export interface ForecastResponse {
+  company_id: string
+  base_year: number
+  horizon: number
+  method: string
+  data_points: number
+  predictions: ForecastPoint[]
+  historical: HistoricalPoint[]
+  revenue_r_squared: number | null
+  revenue_cagr: number | null
+  generated_at: string | null
+}
+
+// ── Risk Analysis ─────────────────────────────────────────────────────────────
+export type AnomalySeverity = 'critical' | 'high' | 'medium' | 'low'
+export type AnomalyType = 'yoy_change' | 'absolute_threshold' | 'industry_outlier' | 'isolation_forest' | 'combined'
+
+export interface AnomalyFlag {
+  metric: string
+  label: string
+  severity: AnomalySeverity
+  anomaly_type: AnomalyType
+  description: string
+  value: number | null
+  previous_value: number | null
+  industry_norm: number | null
+}
+
+export interface AnomalyResult {
+  company_id: string
+  fiscal_year: number
+  anomalies: AnomalyFlag[]
+  risk_score: number
+  summary: string
+  methods_used: string[]
+}
+
+export interface PiotroskiSignal {
+  name: string
+  description: string
+  passed: boolean
+  value: number | null
+}
+
+export type PiotroskiCategory = 'strong' | 'neutral' | 'weak'
+export type DistressLabel = 'very_low' | 'low' | 'moderate' | 'high' | 'very_high'
+
+export interface PiotroskiResult {
+  score: number
+  available: number
+  category: PiotroskiCategory
+  signals: PiotroskiSignal[]
+}
+
+export interface BankruptcyRisk {
+  company_id: string
+  fiscal_year: number
+  piotroski: PiotroskiResult
+  altman_z_score: number | null
+  altman_zone: string | null
+  distress_probability: number
+  distress_label: DistressLabel
+  risk_factors: string[]
+  positive_factors: string[]
+}
+
 // ── AI Report ─────────────────────────────────────────────────────────────────
 export type AIReportStatus = 'pending' | 'generating' | 'done' | 'error'
 
@@ -177,4 +297,5 @@ export interface AIReport {
   red_flags: string[] | null
   model_used: string | null
   generated_at: string | null
+  error_message: string | null
 }

@@ -2,10 +2,17 @@ import { cn } from '@/lib/utils'
 import { type ButtonHTMLAttributes, forwardRef } from 'react'
 
 const variants = {
-  primary:   'bg-primary-700 text-white hover:bg-primary-800 focus-visible:outline-primary-600',
-  secondary: 'bg-white text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50',
-  danger:    'bg-red-600 text-white hover:bg-red-700',
-  ghost:     'text-gray-600 hover:bg-gray-100',
+  primary:
+    'bg-gradient-to-r from-primary-600 to-accent-500 text-white shadow-sm ' +
+    'hover:from-primary-700 hover:to-accent-600 hover:shadow-md ' +
+    'focus-visible:outline-primary-600',
+  secondary:
+    'bg-white text-gray-800 ring-1 ring-inset ring-gray-200 ' +
+    'hover:bg-gray-50 focus-visible:outline-gray-400',
+  danger:
+    'bg-red-600 text-white hover:bg-red-700 focus-visible:outline-red-600',
+  ghost:
+    'text-gray-600 hover:bg-gray-100 focus-visible:outline-gray-400',
 }
 
 const sizes = {
@@ -26,8 +33,9 @@ export const Button = forwardRef<HTMLButtonElement, Props>(
       ref={ref}
       disabled={disabled || loading}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-lg font-medium',
-        'transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
+        'inline-flex items-center justify-center gap-2 rounded-xl font-medium',
+        'transition-all duration-200',
+        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
         'disabled:opacity-50 disabled:cursor-not-allowed',
         variants[variant],
         sizes[size],

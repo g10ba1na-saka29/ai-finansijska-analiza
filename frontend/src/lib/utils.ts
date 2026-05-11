@@ -64,6 +64,45 @@ export function scoreToRisk(score: number): RiskLevel {
   return 'critical'
 }
 
+// ── Company gradient palette ──────────────────────────────────────────────────
+export const COMPANY_GRADIENTS = [
+  { from: '#6366f1', to: '#8b5cf6' }, // indigo-violet (default)
+  { from: '#3b82f6', to: '#06b6d4' }, // blue-cyan
+  { from: '#10b981', to: '#059669' }, // emerald
+  { from: '#f59e0b', to: '#ef4444' }, // amber-red
+  { from: '#ec4899', to: '#8b5cf6' }, // pink-violet
+  { from: '#06b6d4', to: '#3b82f6' }, // cyan-blue
+  { from: '#84cc16', to: '#22c55e' }, // lime-green
+  { from: '#f97316', to: '#eab308' }, // orange-gold
+]
+
+const GRADIENT_LS_KEY = 'bilansia_co_color'
+
+export function getCompanyGradient(companyId: string): { from: string; to: string } {
+  if (typeof window === 'undefined') return COMPANY_GRADIENTS[0]
+  const stored = localStorage.getItem(`${GRADIENT_LS_KEY}_${companyId}`)
+  if (stored !== null) {
+    const idx = parseInt(stored, 10)
+    return COMPANY_GRADIENTS[idx] ?? COMPANY_GRADIENTS[0]
+  }
+  // Deterministic fallback: hash company id to gradient index
+  let hash = 0
+  for (let i = 0; i < companyId.length; i++) hash = (hash * 31 + companyId.charCodeAt(i)) >>> 0
+  return COMPANY_GRADIENTS[hash % COMPANY_GRADIENTS.length]
+}
+
+export function setCompanyGradient(companyId: string, idx: number): void {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(`${GRADIENT_LS_KEY}_${companyId}`, String(idx))
+}
+
+// ── User avatar color ─────────────────────────────────────────────────────────
+export function getUserAvatarGradient(email: string): { from: string; to: string } {
+  let hash = 0
+  for (let i = 0; i < email.length; i++) hash = (hash * 31 + email.charCodeAt(i)) >>> 0
+  return COMPANY_GRADIENTS[hash % COMPANY_GRADIENTS.length]
+}
+
 // ── KPI thresholds for colour coding ─────────────────────────────────────────
 export function kpiStatus(metric: string, value: number | null): 'good' | 'warn' | 'bad' | 'neutral' {
   if (value == null) return 'neutral'

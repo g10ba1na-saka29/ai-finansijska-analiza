@@ -1,6 +1,26 @@
-version: '3.9'
-
 services:
+
+  # ── Frontend (dev – hot reload) ───────────────────────────────────────────────
+  frontend:
+    image: node:20-alpine
+    container_name: fin_frontend
+    working_dir: /app
+    command: sh -c "npm install --prefer-offline && npm run dev"
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      - WATCHPACK_POLLING=true
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # ── API ───────────────────────────────────────────────────────────────────────
   api:
     build: ./backend
     container_name: fin_api
@@ -16,7 +36,9 @@ services:
       redis:
         condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
 
+  # ── Celery worker ─────────────────────────────────────────────────────────────
   worker:
     build: ./backend
     container_name: fin_worker
@@ -30,7 +52,9 @@ services:
       redis:
         condition: service_healthy
     command: celery -A app.workers.celery_app worker --loglevel=info --concurrency=4
+    restart: unless-stopped
 
+  # ── Celery beat ───────────────────────────────────────────────────────────────
   beat:
     build: ./backend
     container_name: fin_beat
@@ -40,7 +64,9 @@ services:
     depends_on:
       - redis
     command: celery -A app.workers.celery_app beat --loglevel=info
+    restart: unless-stopped
 
+  # ── Flower (Celery monitor) ───────────────────────────────────────────────────
   flower:
     build: ./backend
     container_name: fin_flower
@@ -50,24 +76,57 @@ services:
     depends_on:
       - redis
     command: celery -A app.workers.celery_app flower --port=5555
+    restart: unless-stopped
 
+  # ── Alembic migrate (one-shot, exits after run) ───────────────────────────────
+  migrate:
+    build: ./backend
+    container_name: fin_migrate
+    volumes:
+      - ./backend:/app
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    command: alembic upgrade head
+    profiles:
+      - migrate
+
+  # ── pgAdmin (web UI za bazu) ──────────────────────────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: fin_pgadmin
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  # ── PostgreSQL ────────────────────────────────────────────────────────────────
   db:
     image: postgres:16-alpine
     container_name: fin_db
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-finuser}
+      POSTGRES_USER:     ${POSTGRES_USER:-finuser}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finpass}
-      POSTGRES_DB: ${POSTGRES_DB:-finanaliza}
+      POSTGRES_DB:       ${POSTGRES_DB:-finanaliza}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-finuser}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-finuser} -d ${POSTGRES_DB:-finanaliza}"]
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
+  # ── Redis ─────────────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: fin_redis
@@ -80,8 +139,11 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
 volumes:
   postgres_data:
   redis_data:
   uploads:
+  pgadmin_data:
+  frontend_node_modules:

@@ -6,7 +6,7 @@ from app.database import get_db
 from app.models.organization import Organization
 from app.models.user import User
 from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, decode_token
-from app.schemas.auth import RegisterRequest, LoginRequest, RefreshRequest, TokenResponse, AccessTokenResponse, UserOut
+from app.schemas.auth import RegisterRequest, LoginRequest, RefreshRequest, TokenResponse, AccessTokenResponse, UserOut, ChangePasswordRequest
 from app.api.deps import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -80,3 +80,17 @@ async def me(current_user: User = Depends(get_current_user)):
         role=current_user.role,
         org_id=str(current_user.org_id),
     )
+
+
+@router.patch("/me/password", status_code=status.HTTP_204_NO_CONTENT)
+async def change_password(
+    payload: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not verify_password(payload.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Trenutna šifra nije ispravna")
+    if len(payload.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Nova šifra mora imati minimalno 6 karaktera")
+    current_user.hashed_password = hash_password(payload.new_password)
+    await db.commit()

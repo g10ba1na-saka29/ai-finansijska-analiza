@@ -306,7 +306,7 @@ def generate_pdf(
     elements.append(Spacer(1, cm))
     elements.append(HRFlowable(width="100%", thickness=0.5, color=Color(*COLORS["mid_gray"])))
     elements.append(Paragraph(
-        f"Generisano: {date.today().strftime('%d.%m.%Y')} | AI Finansijska Analiza | Score verzija 1.0",
+        f"Generisano: {date.today().strftime('%d.%m.%Y')} | Bilansia — AI Finansijska Analiza | Score verzija 1.0",
         ParagraphStyle("Footer", parent=base["Normal"], fontSize=8,
                        textColor=Color(*COLORS["mid_gray"]), alignment=TA_CENTER),
     ))

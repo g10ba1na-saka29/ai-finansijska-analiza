@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'AI Finansijska Analiza',
-  description: 'Platforma za AI-powered finansijsku analizu kompanija',
+  title: 'Bilansia',
+  description: 'AI platforma za finansijsku analizu kompanija — KPI, risk scoring, AI izvještaji',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

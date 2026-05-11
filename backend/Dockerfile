@@ -1,11 +1,22 @@
 FROM python:3.12-slim
 
-# Ghostscript + OpenCV deps (potrebno za camelot-py[cv])
+# Build tools + Ghostscript + OpenCV deps (for camelot-py[cv])
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    g++ \
     ghostscript \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     libgomp1 \
+    # Tesseract OCR + bosanski/srpski/hrvatski jezici
+    tesseract-ocr \
+    tesseract-ocr-bos \
+    tesseract-ocr-srp \
+    tesseract-ocr-hrv \
+    tesseract-ocr-deu \
+    # poppler-utils — potrebno za pdf2image (PDF → slike za OCR)
+    poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

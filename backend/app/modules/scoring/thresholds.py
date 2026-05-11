@@ -16,10 +16,16 @@ class MetricThreshold:
 
 
 def score_metric(value: float | None, t: MetricThreshold) -> float | None:
-    """Linearno mapira vrijednost na 0–100."""
+    """Linearno mapira vrijednost na 0–100.
+
+    Uvijek koristimo lo=worst_val, hi=best_val.
+    Kada je higher_is_better=False, best_val < worst_val pa je (hi-lo) negativan,
+    što automatski invertuje smjer: viša vrijednost → niži score.
+    Primjer: debt_to_equity worst=5, best=0 → (value-5)/(0-5) → pada s rastom vrijednosti.
+    """
     if value is None:
         return None
-    lo, hi = (t.worst_val, t.best_val) if t.higher_is_better else (t.best_val, t.worst_val)
+    lo, hi = t.worst_val, t.best_val
     if hi == lo:
         return 50.0
     normalized = (value - lo) / (hi - lo)

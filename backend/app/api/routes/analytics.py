@@ -12,6 +12,11 @@ from app.models.company_score import CompanyScore
 from app.api.deps import get_current_user
 from app.schemas.kpi import KPIResponse, LiquidityKPIs, ProfitabilityKPIs, LeverageKPIs, GrowthKPIs, CashFlowKPIs, EfficiencyKPIs, KPITrendResponse, KPITrendPoint
 from app.schemas.score import ScoreResponse, AltmanData, ScoreBreakdown, ScoreHistoryResponse, ScoreHistoryPoint
+from app.core.cache import (
+    cache,
+    kpi_key, score_key, score_history_key, kpi_trend_key,
+    KPI_TTL, SCORE_TTL,
+)
 
 router = APIRouter(prefix="/companies", tags=["analytics"])
 
@@ -37,6 +42,15 @@ async def get_kpi(
 ):
     await _get_company_or_403(company_id, current_user, db)
 
+    cid = str(company_id)
+    ck  = kpi_key(cid, fiscal_year)
+
+    # ── Cache hit? ─────────────────────────────────────────────────────────────
+    cached = await cache.get_json(ck)
+    if cached:
+        return KPIResponse(**cached)
+
+    # ── DB lookup ──────────────────────────────────────────────────────────────
     q = await db.execute(
         select(KPISnapshot).where(
             KPISnapshot.company_id == company_id,
@@ -47,8 +61,7 @@ async def get_kpi(
     if not snap:
         raise HTTPException(status_code=404, detail=f"KPI data not found for {fiscal_year}")
 
-    rf = snap.raw_financials or {}
-    return KPIResponse(
+    response = KPIResponse(
         company_id=company_id,
         fiscal_year=fiscal_year,
         liquidity=LiquidityKPIs(
@@ -84,6 +97,11 @@ async def get_kpi(
         calculated_at=snap.calculated_at,
     )
 
+    # ── Upiši u cache ──────────────────────────────────────────────────────────
+    await cache.set_json(ck, response.model_dump(mode="json"), ttl=KPI_TTL)
+
+    return response
+
 
 @router.get("/{company_id}/kpi/trend", response_model=KPITrendResponse)
 async def get_kpi_trend(
@@ -92,6 +110,13 @@ async def get_kpi_trend(
     current_user: User = Depends(get_current_user),
 ):
     await _get_company_or_403(company_id, current_user, db)
+
+    cid = str(company_id)
+    ck  = kpi_trend_key(cid)
+
+    cached = await cache.get_json(ck)
+    if cached:
+        return KPITrendResponse(**cached)
 
     q = await db.execute(
         select(KPISnapshot, CompanyScore)
@@ -117,7 +142,9 @@ async def get_kpi_trend(
             total_score=float(score.total_score) if score else None,
         ))
 
-    return KPITrendResponse(company_id=company_id, points=points)
+    response = KPITrendResponse(company_id=company_id, points=points)
+    await cache.set_json(ck, response.model_dump(mode="json"), ttl=KPI_TTL)
+    return response
 
 
 # ── Score Endpointi ────────────────────────────────────────────────────────────
@@ -130,6 +157,13 @@ async def get_score(
     current_user: User = Depends(get_current_user),
 ):
     await _get_company_or_403(company_id, current_user, db)
+
+    cid = str(company_id)
+    ck  = score_key(cid, fiscal_year)
+
+    cached = await cache.get_json(ck)
+    if cached:
+        return ScoreResponse(**cached)
 
     q = await db.execute(
         select(CompanyScore).where(
@@ -144,7 +178,7 @@ async def get_score(
     altman_raw = score.altman_data or {}
     breakdown_raw = score.breakdown or {}
 
-    return ScoreResponse(
+    response = ScoreResponse(
         company_id=company_id,
         fiscal_year=fiscal_year,
         total_score=float(score.total_score),
@@ -160,6 +194,9 @@ async def get_score(
         calculated_at=score.calculated_at,
     )
 
+    await cache.set_json(ck, response.model_dump(mode="json"), ttl=SCORE_TTL)
+    return response
+
 
 @router.get("/{company_id}/score/history", response_model=ScoreHistoryResponse)
 async def get_score_history(
@@ -168,6 +205,13 @@ async def get_score_history(
     current_user: User = Depends(get_current_user),
 ):
     await _get_company_or_403(company_id, current_user, db)
+
+    cid = str(company_id)
+    ck  = score_history_key(cid)
+
+    cached = await cache.get_json(ck)
+    if cached:
+        return ScoreHistoryResponse(**cached)
 
     q = await db.execute(
         select(CompanyScore)
@@ -190,7 +234,9 @@ async def get_score_history(
         for s in rows
     ]
 
-    return ScoreHistoryResponse(company_id=company_id, history=history)
+    response = ScoreHistoryResponse(company_id=company_id, history=history)
+    await cache.set_json(ck, response.model_dump(mode="json"), ttl=SCORE_TTL)
+    return response
 
 
 @router.post("/{company_id}/calculate/{fiscal_year}", status_code=202)
@@ -202,6 +248,15 @@ async def trigger_calculation(
 ):
     """Ručno pokreće KPI + score kalkulaciju za godinu."""
     await _get_company_or_403(company_id, current_user, db)
+
+    # Invaliduj cache za ovu godinu prije nego počne nova kalkulacija
+    cid = str(company_id)
+    await cache.delete(
+        kpi_key(cid, fiscal_year),
+        score_key(cid, fiscal_year),
+        score_history_key(cid),
+        kpi_trend_key(cid),
+    )
 
     from app.workers.tasks.kpi_calculation import calculate_kpis_and_score
     task = calculate_kpis_and_score.delay(str(company_id), fiscal_year)

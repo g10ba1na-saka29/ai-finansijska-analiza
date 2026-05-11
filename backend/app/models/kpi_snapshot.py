@@ -18,34 +18,43 @@ class KPISnapshot(Base):
 
     # Likvidnost
     current_ratio: Mapped[float | None] = mapped_column(Numeric(10, 4))
-    quick_ratio: Mapped[float | None] = mapped_column(Numeric(10, 4))
-    cash_ratio: Mapped[float | None] = mapped_column(Numeric(10, 4))
+    quick_ratio:   Mapped[float | None] = mapped_column(Numeric(10, 4))
+    cash_ratio:    Mapped[float | None] = mapped_column(Numeric(10, 4))
 
     # Profitabilnost
-    gross_margin: Mapped[float | None] = mapped_column(Numeric(10, 4))
+    gross_margin:  Mapped[float | None] = mapped_column(Numeric(10, 4))
     ebitda_margin: Mapped[float | None] = mapped_column(Numeric(10, 4))
-    net_margin: Mapped[float | None] = mapped_column(Numeric(10, 4))
-    roe: Mapped[float | None] = mapped_column(Numeric(10, 4))
-    roa: Mapped[float | None] = mapped_column(Numeric(10, 4))
+    ebit_margin:   Mapped[float | None] = mapped_column(Numeric(10, 4))
+    net_margin:    Mapped[float | None] = mapped_column(Numeric(10, 4))
+    roe:           Mapped[float | None] = mapped_column(Numeric(10, 4))
+    roa:           Mapped[float | None] = mapped_column(Numeric(10, 4))
 
     # Zaduženost
-    debt_to_equity: Mapped[float | None] = mapped_column(Numeric(10, 4))
+    debt_to_equity:    Mapped[float | None] = mapped_column(Numeric(10, 4))
     interest_coverage: Mapped[float | None] = mapped_column(Numeric(10, 4))
-    debt_ratio: Mapped[float | None] = mapped_column(Numeric(10, 4))
+    debt_ratio:        Mapped[float | None] = mapped_column(Numeric(10, 4))
+    equity_ratio:      Mapped[float | None] = mapped_column(Numeric(10, 4))
 
     # Rast (YoY)
-    revenue_growth: Mapped[float | None] = mapped_column(Numeric(10, 4))
-    ebitda_growth: Mapped[float | None] = mapped_column(Numeric(10, 4))
+    revenue_growth:    Mapped[float | None] = mapped_column(Numeric(10, 4))
+    ebitda_growth:     Mapped[float | None] = mapped_column(Numeric(10, 4))
     net_income_growth: Mapped[float | None] = mapped_column(Numeric(10, 4))
+    asset_growth:      Mapped[float | None] = mapped_column(Numeric(10, 4))
 
     # Cash Flow
-    free_cash_flow: Mapped[float | None] = mapped_column(Numeric(20, 2))
-    ocf_margin: Mapped[float | None] = mapped_column(Numeric(10, 4))
+    free_cash_flow:             Mapped[float | None] = mapped_column(Numeric(20, 2))
+    ocf_margin:                 Mapped[float | None] = mapped_column(Numeric(10, 4))
+    cash_to_debt:               Mapped[float | None] = mapped_column(Numeric(10, 4))
+    ocf_to_current_liabilities: Mapped[float | None] = mapped_column(Numeric(10, 4))
 
     # Efikasnost
-    asset_turnover: Mapped[float | None] = mapped_column(Numeric(10, 4))
-    days_sales_outstanding: Mapped[float | None] = mapped_column(Numeric(10, 2))
+    asset_turnover:             Mapped[float | None] = mapped_column(Numeric(10, 4))
+    receivables_turnover:       Mapped[float | None] = mapped_column(Numeric(10, 4))
+    days_sales_outstanding:     Mapped[float | None] = mapped_column(Numeric(10, 2))
+    inventory_turnover:         Mapped[float | None] = mapped_column(Numeric(10, 4))
+    days_inventory_outstanding: Mapped[float | None] = mapped_column(Numeric(10, 2))
 
-    # Raw finansijski podaci (za custom kalkulacije)
+    # Raw finansijski podaci (za audit i custom kalkulacije)
     raw_financials: Mapped[dict | None] = mapped_column(JSONB)
+
     calculated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
