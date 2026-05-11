@@ -526,7 +526,7 @@ class LLMClient:
 - [x] PDF export izvještaja (WeasyPrint)
 - [x] Q&A endpoint (chat o kompaniji)
 
-### Faza 5 — Frontend ✅ UGLAVNOM ZAVRŠENA
+### Faza 5 — Frontend ✅ ZAVRŠENA
 - [x] Next.js projekt setup + Tailwind
 - [x] Auth flow — login (canvas animacija), register
 - [x] Company dashboard (score ring, stat kartice, company grid)
@@ -540,7 +540,7 @@ class LLMClient:
 - [x] Postavke profila (ime, šifra, avatar, photo upload)
 - [x] Toast notifikacijski sistem (zamijenio sve alert() pozive)
 - [x] Sidebar live sync (promjene u postavkama odmah vidljive)
-- [ ] Org management — invite korisnika, upravljanje rolama          ← NEDOSTAJE
+- [x] Org management — dodavanje članova, promjena rola (admin/analyst), deaktivacija, uklanjanje
 - [x] Benchmarks stranica — poređenje sa industrijskim prosjekom
 - [x] Forecasting stranica — ML prognoza 1–3 godine (backend + frontend)
 - [x] Risk assessment stranica — anomaly detection, Piotroski F-Score, distress gauge

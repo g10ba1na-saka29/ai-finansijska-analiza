@@ -15,7 +15,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.config import settings
 from app.core.logging_config import setup_logging
 from app.core.middleware import RequestLoggingMiddleware
-from app.api.routes import auth, companies, reports, analytics, ai_reports, benchmarks, forecasting, webhooks, risk_analysis
+from app.api.routes import auth, companies, reports, analytics, ai_reports, benchmarks, forecasting, webhooks, risk_analysis, org
 
 # ── Logging ────────────────────────────────────────────────────────────────────
 setup_logging(level=settings.LOG_LEVEL, json_output=settings.LOG_JSON)
@@ -90,6 +90,7 @@ app.include_router(benchmarks.router,  prefix=settings.API_V1_PREFIX)
 app.include_router(forecasting.router, prefix=settings.API_V1_PREFIX)
 app.include_router(webhooks.router,      prefix=settings.API_V1_PREFIX)
 app.include_router(risk_analysis.router, prefix=settings.API_V1_PREFIX)
+app.include_router(org.router,           prefix=settings.API_V1_PREFIX)
 
 
 # ── Health ─────────────────────────────────────────────────────────────────────
