@@ -7,6 +7,7 @@ import type {
   BenchmarkResponse, IndustriesResponse,
   ForecastResponse,
   AnomalyResult, BankruptcyRisk,
+  OrgMember, MemberListResponse,
 } from '@/types'
 
 const API =
@@ -179,6 +180,27 @@ export const riskAnalysis = {
 
   bankruptcyRisk: (companyId: string, year: number) =>
     req<BankruptcyRisk>(`/companies/${companyId}/bankruptcy-risk/${year}`),
+}
+
+// ── Organization ──────────────────────────────────────────────────────────────
+export const org = {
+  listMembers: () =>
+    req<MemberListResponse>('/org/members'),
+
+  addMember: (email: string, password: string, role: string) =>
+    req<OrgMember>('/org/members', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, role }),
+    }),
+
+  updateMember: (id: string, data: { role?: string; is_active?: boolean }) =>
+    req<OrgMember>(`/org/members/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  removeMember: (id: string) =>
+    req<void>(`/org/members/${id}`, { method: 'DELETE' }),
 }
 
 // ── AI Reports ────────────────────────────────────────────────────────────────

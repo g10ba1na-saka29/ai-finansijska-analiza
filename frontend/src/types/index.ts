@@ -278,6 +278,20 @@ export interface BankruptcyRisk {
   positive_factors: string[]
 }
 
+// ── Organization ──────────────────────────────────────────────────────────────
+export interface OrgMember {
+  id: string
+  email: string
+  role: string
+  is_active: boolean
+  created_at: string
+}
+
+export interface MemberListResponse {
+  items: OrgMember[]
+  total: number
+}
+
 // ── AI Report ─────────────────────────────────────────────────────────────────
 export type AIReportStatus = 'pending' | 'generating' | 'done' | 'error'
 
