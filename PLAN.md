@@ -545,13 +545,13 @@ class LLMClient:
 - [x] Forecasting stranica — ML prognoza 1–3 godine (backend + frontend)
 - [x] Risk assessment stranica — anomaly detection, Piotroski F-Score, distress gauge
 
-### Faza 6 — Polish & Production ✅ UGLAVNOM ZAVRŠENA
+### Faza 6 — Polish & Production ✅ ZAVRŠENA
 - [x] Redis caching (cache-aside na KPI/score endpointima, TTL 1h, sync invalidacija iz Celery)
 - [x] Rate limiting (slowapi, 120/min globalno, 20/min za upload)
-- [ ] Audit log endpoint (tabela postoji, API endpoint nije implementiran)
+- [x] Audit log (model + migracija + helper + GET /org/audit-log + frontend tab)
 - [x] Webhook system (CRUD, HMAC-SHA256 potpisivanje, Celery isporuka, test endpoint)
 - [x] Monitoring (Sentry SDK, strukturirani JSON logging, RequestLoggingMiddleware, global error handler)
-- [ ] Dokumentacija za korisnike
+- [x] Dokumentacija za korisnike (docs/USER_GUIDE.md)
 
 ---
 

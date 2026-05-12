@@ -292,6 +292,22 @@ export interface MemberListResponse {
   total: number
 }
 
+export interface AuditLogEntry {
+  id: string
+  user_id: string | null
+  action: string
+  resource_type: string | null
+  resource_id: string | null
+  details: Record<string, unknown> | null
+  ip_address: string | null
+  created_at: string
+}
+
+export interface AuditLogListResponse {
+  items: AuditLogEntry[]
+  total: number
+}
+
 // ── AI Report ─────────────────────────────────────────────────────────────────
 export type AIReportStatus = 'pending' | 'generating' | 'done' | 'error'
 

@@ -1,12 +1,13 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from app.database import get_db
 from app.models.user import User
 from app.models.company import Company
+from app.core.audit import audit
 from app.api.deps import get_current_user
 from app.schemas.company import CompanyCreate, CompanyUpdate, CompanyOut, CompanyListOut
 
@@ -41,6 +42,7 @@ async def list_companies(
 
 @router.post("", response_model=CompanyOut, status_code=status.HTTP_201_CREATED)
 async def create_company(
+    request: Request,
     payload: CompanyCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -48,6 +50,15 @@ async def create_company(
     company = Company(**payload.model_dump(), org_id=current_user.org_id)
     db.add(company)
     await db.flush()
+    await db.refresh(company)
+    await audit(
+        db, org_id=current_user.org_id, user_id=current_user.id,
+        action="company.created",
+        resource_type="company", resource_id=str(company.id),
+        details={"name": company.name, "industry": company.industry},
+        request=request,
+    )
+    await db.commit()
     await db.refresh(company)
     return company
 
@@ -90,6 +101,7 @@ async def update_company(
 @router.delete("/{company_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_company(
     company_id: UUID,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -98,4 +110,13 @@ async def delete_company(
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
     _assert_owns(company, current_user)
+    deleted_name = company.name
     await db.delete(company)
+    await audit(
+        db, org_id=current_user.org_id, user_id=current_user.id,
+        action="company.deleted",
+        resource_type="company", resource_id=str(company_id),
+        details={"name": deleted_name},
+        request=request,
+    )
+    await db.commit()

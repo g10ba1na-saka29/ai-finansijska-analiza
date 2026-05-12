@@ -7,7 +7,7 @@ import type {
   BenchmarkResponse, IndustriesResponse,
   ForecastResponse,
   AnomalyResult, BankruptcyRisk,
-  OrgMember, MemberListResponse,
+  OrgMember, MemberListResponse, AuditLogEntry, AuditLogListResponse,
 } from '@/types'
 
 const API =
@@ -201,6 +201,15 @@ export const org = {
 
   removeMember: (id: string) =>
     req<void>(`/org/members/${id}`, { method: 'DELETE' }),
+
+  auditLog: (params?: { skip?: number; limit?: number; resource_type?: string; action?: string }) => {
+    const q = new URLSearchParams()
+    if (params?.skip)          q.set('skip',          String(params.skip))
+    if (params?.limit)         q.set('limit',         String(params.limit))
+    if (params?.resource_type) q.set('resource_type', params.resource_type)
+    if (params?.action)        q.set('action',        params.action)
+    return req<AuditLogListResponse>(`/org/audit-log?${q.toString()}`)
+  },
 }
 
 // ── AI Reports ────────────────────────────────────────────────────────────────

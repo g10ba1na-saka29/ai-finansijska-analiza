@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models.organization import Organization
 from app.models.user import User
 from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, decode_token
+from app.core.audit import audit
 from app.schemas.auth import RegisterRequest, LoginRequest, RefreshRequest, TokenResponse, AccessTokenResponse, UserOut, ChangePasswordRequest
 from app.api.deps import get_current_user
 
@@ -13,7 +14,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db)):
+async def register(request: Request, payload: RegisterRequest, db: AsyncSession = Depends(get_db)):
     existing = await db.execute(select(User).where(User.email == payload.email))
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -31,6 +32,15 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
     db.add(user)
     await db.flush()
 
+    await audit(
+        db, org_id=org.id, user_id=user.id,
+        action="auth.register",
+        resource_type="user", resource_id=str(user.id),
+        details={"email": user.email, "org_name": payload.org_name},
+        request=request,
+    )
+    await db.commit()
+
     return TokenResponse(
         access_token=create_access_token(str(user.id), str(org.id), user.role),
         refresh_token=create_refresh_token(str(user.id)),
@@ -38,7 +48,7 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
+async def login(request: Request, payload: LoginRequest, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == payload.email))
     user = result.scalar_one_or_none()
 
@@ -47,6 +57,15 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
 
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account disabled")
+
+    await audit(
+        db, org_id=user.org_id, user_id=user.id,
+        action="auth.login",
+        resource_type="user", resource_id=str(user.id),
+        details={"email": user.email},
+        request=request,
+    )
+    await db.commit()
 
     return TokenResponse(
         access_token=create_access_token(str(user.id), str(user.org_id), user.role),
